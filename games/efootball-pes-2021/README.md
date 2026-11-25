@@ -1,14 +1,16 @@
 # eFootball PES 2021 / Football Life
 
 - **Processes**: `PES2021.exe`, `FL24.exe`, `FL25.exe`, `FL26.exe`
-- **Bridge**: Sider 7 Lua module (`PesPresence.lua`) exporting live match and career state to `%TEMP%\pes_rpc.json` (plus `Sider\pes_rpc.json`).
+- **Bridge**: Sider 7 Lua module (`PesPresence.lua` v2.0.0) exporting live match and career state to `%TEMP%\pes_rpc.json` (plus `C:\Windows\Temp\pes_rpc.json` and game/Sider directory).
 
 ## Tracked States
 
-- Main Menu
-- Career Menus (`Master League` with manager name & team abbreviation; `Become a Legend` with player name & team abbreviation)
+- Main Menu, Edit Mode, Training Mode
+- Career Menus (`Master League` with season, manager name & club/national abbreviation; `Become a Legend` with season, player name, position & team abbreviation)
 - Live Match:
-  - Home vs Away team names & score (`Team A 2 x 1 Team B`)
-  - Competition name (`Champions League`, `Brasileirão`, `Cup Mode`, `League Mode`, `Exhibition`, etc.) and stage (`Final`, `Semifinal`, `Quarterfinal`)
-  - Live match clock (`45+3 2T`, `30 1T`, `PK`)
-  - Dynamic Club vs National Team abbreviation switching in Master League / Become a Legend
+  - Home vs Away team names, score, and penalty shootout score
+  - Live match state (`live`, `halftime`, `fulltime`, `paused`) and clock (`45+3 2T`, `30 1T`, `PK`)
+  - 40+ standardized competitions (`comp_key`) and knockout stages
+  - Live league standings position (`home_pos`, `away_pos`, `user_pos`, `round_num`)
+  - Stadium name, season, and dynamic Club vs National Team switching in Master League / Become a Legend
+- Multi-build & multi-patch RAM support: `CPY` and `Steam` binaries, `normal` and expanded `cap` memory layouts
