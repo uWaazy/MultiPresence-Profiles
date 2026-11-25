@@ -536,13 +536,28 @@ local function get_team_full_from_struct(team_addr)
     return clean_team_display_name(clean_str(read_bytes(team_addr + 0x13c, 0x46)))
 end
 
-local function read_career_season(blk)
+local CALENDAR_YEAR_COMPS = {
+    br_a = true, br_b = true, br_c = true, br_d = true,
+    cdb = true, ne = true, cverde = true, supercopa = true,
+    paulistao = true, est = true,
+    lib = true, suda = true, recopa = true, ca = true,
+    arg_lpf = true, arg_cup = true,
+    wc = true, cwc = true, euro = true,
+}
+
+local function read_career_season(blk, comp_key)
     if not blk or not S.L then return "" end
     local db = read_bytes(blk + S.L.date + 8, 4)
     if not db then return "" end
     local y = u16_le(db, 1)
     local mo = db:byte(3)
     if y < 1990 or y > 2150 or mo < 1 or mo > 12 then return "" end
+
+    local effective_key = (comp_key and comp_key ~= "") and comp_key or (S.standings_root_tid and COMP_TID_MAP[S.standings_root_tid] or "")
+    if CALENDAR_YEAR_COMPS[effective_key] then
+        return tostring(y)
+    end
+
     if mo >= 7 then
         return string.format("%d/%02d", y, (y + 1) % 100)
     else
@@ -699,6 +714,7 @@ local function compute_standings_snapshot(blk, target_tid, home_id, away_id, liv
         S.standings_cache_key = cache_key
         S.standings_pos = {}
         S.standings_round = 0
+        S.standings_root_tid = 0
         S.standings_is_league = false
 
         local ev_cnt = read_u32(blk + S.L.count) or 0
@@ -765,6 +781,7 @@ local function compute_standings_snapshot(blk, target_tid, home_id, away_id, liv
                 for _ in pairs(tbl) do n_clubs = n_clubs + 1 end
                 local min_rr = math.floor(n_clubs * (n_clubs - 1) / 2)
                 if n_clubs >= 3 and n_clubs <= 28 and total_matches >= min_rr then
+                    S.standings_root_tid = target_root
                     S.standings_is_league = true
                     S.standings_base_tbl = tbl
                     S.standings_pos = rank_table(tbl)
@@ -795,14 +812,14 @@ local function compute_standings_snapshot(blk, target_tid, home_id, away_id, liv
 end
 
 local function write_presence(data)
-    local tmp_dir = os.getenv("TEMP") or os.getenv("TMP") or "C:\\Windows\\Temp"
+    local tmp_dir = (os and os.getenv and (os.getenv("TEMP") or os.getenv("TMP"))) or "C:\\Windows\\Temp"
     if tmp_dir:sub(-1) == "\\" then tmp_dir = tmp_dir:sub(1, -2) end
     local sdir = g_sider_dir
     if sdir:sub(-1) ~= "\\" and sdir:sub(-1) ~= "/" then sdir = sdir .. "\\" end
 
     local targets = {
-        tmp_dir .. "\\pes_rpc.json",
         sdir .. "pes_rpc.json",
+        tmp_dir .. "\\pes_rpc.json",
     }
 
     local payload = string.format([[{
@@ -907,7 +924,6 @@ local function update_presence_state(ctx)
     local mem_mode = detect_game_mode_from_memory()
     if mem_mode then S.detected_mode_key = mem_mode end
     local mode_key = S.detected_mode_key or "menu"
-    local season = read_career_season(blk)
 
     local in_match = (stats and stats.period and stats.period > 0) and true or false
     local team_abbr, team_name, user_tid = "", "", 0
@@ -966,6 +982,7 @@ local function update_presence_state(ctx)
         end
 
         local hp, ap, up, rnum = compute_standings_snapshot(blk, user_tid, S.last_home_id, S.last_away_id, hs, as, true)
+        local season = read_career_season(blk, comp_key)
 
         write_presence({
             in_match = true,
@@ -1001,6 +1018,7 @@ local function update_presence_state(ctx)
         })
     else
         local _, _, up, rnum = compute_standings_snapshot(blk, user_tid, 0, 0, 0, 0, false)
+        local season = read_career_season(blk, "")
         write_presence({
             in_match = false,
             match_state = "menu",
